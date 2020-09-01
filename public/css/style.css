@@ -8,6 +8,8 @@ h1 {
 }
 
 .btn-link {
+  display: inline-block;
+  margin: 5px;
   padding: 10px;
   text-decoration: none;
 

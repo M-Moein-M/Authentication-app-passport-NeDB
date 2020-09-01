@@ -39,11 +39,13 @@ app.get('/register', (req, res) =>
 app.post('/user/add', (req, res) => {
   console.log(req.body.name);
   console.log(req.body.password);
-
+  if (!req.body.name || !req.body.password) {
+    // invalid request redirecting to register page
+    res.status(400).redirect('/register');
+  }
   bcrypt.hash(req.body.password, 10, (err, encryptedPass) => {
     database.insert({ name: req.body.name, password: encryptedPass });
     console.log(`${req.body.name} added to database`);
+    res.status(200);
   });
-
-  res.redirect('/');
 });
