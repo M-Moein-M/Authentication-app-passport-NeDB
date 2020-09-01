@@ -1,5 +1,18 @@
 body {
-  background-color: orange;
+  background-color: #bbdefb;
   margin: 0;
   padding: 0;
+}
+h1 {
+  color: navy;
+}
+
+.btn-link {
+  padding: 10px;
+  text-decoration: none;
+
+  color: #e3f2fd;
+  background-color: #0d47a1;
+
+  border-radius: 5px;
 }
