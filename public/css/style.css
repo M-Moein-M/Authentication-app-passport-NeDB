@@ -10,11 +10,15 @@ h1 {
 .btn-link {
   display: inline-block;
   margin: 5px;
-  padding: 10px;
+  padding: 5px;
   text-decoration: none;
 
   color: #e3f2fd;
   background-color: #0d47a1;
 
   border-radius: 5px;
+}
+
+form > div {
+  margin: 10px;
 }
