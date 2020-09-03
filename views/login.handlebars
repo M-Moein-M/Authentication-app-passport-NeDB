@@ -1,4 +1,7 @@
 <h1>Login</h1>
+{{#if messages.error }}
+<p>{{messages.error}}</p>
+{{/if}}
 <div>
   <form action='/login' method='POST'>
     <div>

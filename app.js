@@ -1,15 +1,10 @@
 const express = require('express');
-const Datastore = require('nedb');
 
 // app
 const app = express();
 
 // database
-const database = new Datastore({ filename: 'database.db' });
-database.loadDatabase((err) => {
-  if (err) throw err;
-  console.log('Database loaded');
-});
+const database = [];
 
 // handlebars
 const exphbs = require('express-handlebars');
@@ -23,17 +18,13 @@ const flash = require('express-flash');
 const session = require('express-session');
 
 const initializePassport = require('./passport-config');
-initializePassport(passport, database.findOne, database.findOne);
-// function getUserByName(name) {
-//   let foundUser;
-//   database.findOne({ name: 'king' }, (err, user) => {
-//     if (err) throw err;
-//     foundUser = user;
-//   });
-//   return foundUser;
-// }
-// console.log(getUserByName('king'));
+initializePassport(
+  passport,
+  (name) => database.find((user) => user.name === name),
+  (id) => database.find((user) => user.id === id)
+);
 
+app.use(require('method-override')('_method'));
 app.use(flash());
 app.use(
   session({
@@ -46,12 +37,17 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 function checkAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) return next();
-  else res.redirect('/login');
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect('/login');
 }
+
 function checkNotAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) res.redirect('/');
-  else next();
+  if (req.isAuthenticated()) {
+    return res.redirect('/');
+  }
+  next();
 }
 
 // listening to port
@@ -79,8 +75,13 @@ app.post('/register', checkNotAuthenticated, (req, res) => {
     res.status(400).redirect('/register');
   }
   bcrypt.hash(req.body.password, 10, (err, encryptedPass) => {
-    database.insert({ name: req.body.name, password: encryptedPass });
-    console.log(`${req.body.name} added to database`);
+    const user = {
+      name: req.body.name,
+      password: encryptedPass,
+      id: Date.now(),
+    };
+    database.push(user);
+    console.log(`${user.name} just registered`);
     res.status(200).redirect('/secret'); // user can login to account
   });
 });
@@ -98,8 +99,15 @@ app.get('/login', checkNotAuthenticated, (req, res) =>
 app.post(
   '/login',
   checkNotAuthenticated,
-  passport.authenticate('local', { failureRedirect: '/login' }),
-  (req, res) => {
-    res.redirect('/secret');
-  }
+  passport.authenticate('local', {
+    successRedirect: '/secret',
+    failureRedirect: '/login',
+    failureFlash: true,
+  })
 );
+
+// logout
+app.get('/logout', (req, res) => {
+  req.logout();
+  res.redirect('/login');
+});
