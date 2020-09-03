@@ -1,17 +1,17 @@
 const express = require('express');
 const Datastore = require('nedb');
 
-// create app
+// app
 const app = express();
 
-// create database
+// database
 const database = new Datastore({ filename: 'database.db' });
 database.loadDatabase((err) => {
   if (err) throw err;
   console.log('Database loaded');
 });
 
-// using handlebars
+// handlebars
 const exphbs = require('express-handlebars');
 app.engine('handlebars', exphbs());
 app.set('view engine', 'handlebars');
@@ -23,13 +23,16 @@ const flash = require('express-flash');
 const session = require('express-session');
 
 const initializePassport = require('./passport-config');
-initializePassport(
-  passport,
-  (name) => database.findOne({ name: name }),
-  (id) => database.findOne({ _id: id })
-);
-
-console.log(database.findOne({ name: 'king' }));
+initializePassport(passport, database.findOne, database.findOne);
+// function getUserByName(name) {
+//   let foundUser;
+//   database.findOne({ name: 'king' }, (err, user) => {
+//     if (err) throw err;
+//     foundUser = user;
+//   });
+//   return foundUser;
+// }
+// console.log(getUserByName('king'));
 
 app.use(flash());
 app.use(
@@ -62,10 +65,10 @@ app.use(express.urlencoded({ extended: false }));
 // rendering homepage
 app.use(express.static('public'));
 
-// for diffrent styling we pass in the css file name to style the page in addition to syle.css(default) file
+// home
 app.get('/', (req, res) => res.render('home', { style: 'home.css' }));
 
-// handle register requests
+// register
 app.get('/register', checkNotAuthenticated, (req, res) =>
   res.render('register', { style: 'register.css' })
 );
@@ -82,12 +85,12 @@ app.post('/register', checkNotAuthenticated, (req, res) => {
   });
 });
 
-// handle secret requests
+// secret
 app.get('/secret', checkAuthenticated, (req, res) => {
   res.render('secret', { style: 'secret.css' });
 });
 
-// handle login requests
+// login
 app.get('/login', checkNotAuthenticated, (req, res) =>
   res.render('login', { style: 'login.css' })
 );
@@ -96,7 +99,7 @@ app.post(
   '/login',
   checkNotAuthenticated,
   passport.authenticate('local', { failureRedirect: '/login' }),
-  function (req, res) {
+  (req, res) => {
     res.redirect('/secret');
   }
 );
