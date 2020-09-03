@@ -82,6 +82,7 @@ app.post('/register', checkNotAuthenticated, (req, res) => {
     };
     database.push(user);
     console.log(`${user.name} just registered`);
+    req.flash('login_message', 'You can log in now');
     res.status(200).redirect('/secret'); // user can login to account
   });
 });

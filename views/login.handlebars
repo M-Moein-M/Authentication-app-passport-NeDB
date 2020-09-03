@@ -2,6 +2,9 @@
 {{#if messages.error }}
 <p>{{messages.error}}</p>
 {{/if}}
+{{#if messages.login_message }}
+<p>{{messages.login_message}}</p>
+{{/if}}
 <div>
   <form action='/login' method='POST'>
     <div>
