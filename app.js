@@ -4,7 +4,8 @@ const express = require('express');
 const app = express();
 
 // database
-const database = [];
+const Datastore = require('nedb');
+const database = new Datastore({ filename: 'database.db', autoload: true });
 
 // handlebars
 const exphbs = require('express-handlebars');
@@ -18,11 +19,7 @@ const flash = require('express-flash');
 const session = require('express-session');
 
 const initializePassport = require('./passport-config');
-initializePassport(
-  passport,
-  (name) => database.find((user) => user.name === name),
-  (id) => database.find((user) => user.id === id)
-);
+initializePassport(passport, database);
 
 app.use(require('method-override')('_method'));
 app.use(flash());
@@ -72,15 +69,14 @@ app.get('/register', checkNotAuthenticated, (req, res) =>
 app.post('/register', checkNotAuthenticated, (req, res) => {
   if (!req.body.name || !req.body.password) {
     // invalid request redirecting to register page
-    res.status(400).redirect('/register');
+    console.log('invalid request');
   }
   bcrypt.hash(req.body.password, 10, (err, encryptedPass) => {
     const user = {
       name: req.body.name,
       password: encryptedPass,
-      id: Date.now(),
     };
-    database.push(user);
+    database.insert(user);
     console.log(`${user.name} just registered`);
     req.flash('login_message', 'You can log in now');
     res.status(200).redirect('/secret'); // user can login to account
@@ -103,7 +99,6 @@ app.post(
   passport.authenticate('local', {
     successRedirect: '/secret',
     failureRedirect: '/login',
-    failureFlash: true,
   })
 );
 
