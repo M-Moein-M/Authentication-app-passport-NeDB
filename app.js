@@ -1,109 +1,68 @@
 const express = require('express');
+const exhbs = require('express-handlebars');
+const path = require('path');
+const dotenv = require('dotenv').config();
 
-// app
 const app = express();
+app.use(express.static('public'));
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`server is running at port ${port}`));
 
 // database
 const Datastore = require('nedb');
-const database = new Datastore({ filename: 'database.db', autoload: true });
+const usersDatabase = new Datastore({
+  filename: path.join(__dirname, 'database', 'users-database.db'),
+  autoload: true,
+});
 
-// handlebars
-const exphbs = require('express-handlebars');
-app.engine('handlebars', exphbs());
-app.set('view engine', 'handlebars');
+console.log('Databasae loaded');
 
-// passport initialization
-const bcrypt = require('bcrypt');
-const passport = require('passport');
+// express session
 const flash = require('express-flash');
 const session = require('express-session');
-
-const initializePassport = require('./passport-config');
-initializePassport(passport, database);
-
-app.use(require('method-override')('_method'));
+const NedbStore = require('connect-nedb-session')(session);
 app.use(flash());
 app.use(
   session({
-    secret: 'just-some-secret',
+    secret: process.env.SECRET || 'skyisgettingdarker',
     resave: false,
     saveUninitialized: false,
+    store: new NedbStore({
+      filename: path.join(__dirname, 'database', 'session-database'),
+    }),
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 200, // 200 hours for session duration
+    },
   })
+);
+
+// passport
+const passport = require('passport');
+
+module.exports = { usersDatabase, passport };
+
+const _ = require(path.join(__dirname, 'passport-config.js'))(
+  passport,
+  usersDatabase
 );
 app.use(passport.initialize());
 app.use(passport.session());
 
-function checkAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect('/login');
-}
-
-function checkNotAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return res.redirect('/');
-  }
-  next();
-}
-
-// listening to port
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Listening to port ${port}`));
-
-// using middlewares for requests
-app.use(express.json());
+// html form middleware
 app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 
-// rendering homepage
-app.use(express.static('public'));
+// handlebar
+app.engine('handlebars', exhbs());
+app.set('view engine', 'handlebars');
 
-// home
-app.get('/', (req, res) => res.render('home', { style: 'home.css' }));
+// routes
+app.use('/', require(path.join(__dirname, 'routes', 'index.js')));
+app.use('/signup', require(path.join(__dirname, 'routes', 'signup')));
+app.use('/signin', require(path.join(__dirname, 'routes', 'signin')));
 
-// register
-app.get('/register', checkNotAuthenticated, (req, res) =>
-  res.render('register', { style: 'register.css' })
-);
-
-app.post('/register', checkNotAuthenticated, (req, res) => {
-  if (!req.body.name || !req.body.password) {
-    // invalid request redirecting to register page
-    console.log('invalid request');
-  }
-  bcrypt.hash(req.body.password, 10, (err, encryptedPass) => {
-    const user = {
-      name: req.body.name,
-      password: encryptedPass,
-    };
-    database.insert(user);
-    console.log(`${user.name} just registered`);
-    req.flash('login_message', 'You can log in now');
-    res.status(200).redirect('/secret'); // user can login to account
-  });
-});
-
-// secret
-app.get('/secret', checkAuthenticated, (req, res) => {
-  res.render('secret', { style: 'secret.css' });
-});
-
-// login
-app.get('/login', checkNotAuthenticated, (req, res) =>
-  res.render('login', { style: 'login.css' })
-);
-
-app.post(
-  '/login',
-  checkNotAuthenticated,
-  passport.authenticate('local', {
-    successRedirect: '/secret',
-    failureRedirect: '/login',
-  })
-);
-
-// logout
 app.get('/logout', (req, res) => {
   req.logout();
-  res.redirect('/login');
+  res.redirect('/');
 });
