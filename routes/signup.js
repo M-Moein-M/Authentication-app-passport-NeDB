@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const flash = require('express-flash');
 
+// loading database for managing users
 const { usersDatabase, passport } = require('../app.js');
 
 router.get('/', isNotAuthenticated, (req, res) => {
@@ -13,6 +13,7 @@ router.get('/', isNotAuthenticated, (req, res) => {
 });
 
 router.post('/', isNotAuthenticated, (req, res) => {
+  // this object will be used so that user don't have to fill the form from scratch
   const renderObj = { signupErrors: [] };
 
   if (req.body.password.length < 6) {
@@ -21,6 +22,7 @@ router.post('/', isNotAuthenticated, (req, res) => {
     renderObj.username = req.body.username;
   }
 
+  // checking for users with same username or email and also check for some other errors and then we add the new user
   usersDatabase.findOne(
     { email: req.body.email },
     (err, userFoundWithEmail) => {
@@ -57,7 +59,7 @@ router.post('/', isNotAuthenticated, (req, res) => {
             renderObj.email = userFoundWithEmail ? null : req.body.email;
             renderObj.username = null;
           }
-
+          // if we've some errors we show them to user
           if (renderObj.signupErrors.length != 0) {
             res.render('signup', renderObj);
           } else {
@@ -72,6 +74,7 @@ router.post('/', isNotAuthenticated, (req, res) => {
             };
             usersDatabase.insert(user);
 
+            // show a confirmation alert and redirect the user to log-in to their account
             req.flash('appMsg', 'You may now sign-in with your account');
             res.render('signin', {
               isUserLogged: req.isAuthenticated(),
